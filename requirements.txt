@@ -2,9 +2,4 @@ Flask
 pillow
 python-docx
 PyPDF2
-pywin32
-comtypes
 gunicorn
-
-
-
