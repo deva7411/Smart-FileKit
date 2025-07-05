@@ -1,5 +1,4 @@
 Flask
-pillow
+Pillow
 python-docx
 PyPDF2
-gunicorn

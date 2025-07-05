@@ -4,19 +4,11 @@ import zipfile
 from PyPDF2 import PdfMerger
 from PIL import Image
 from werkzeug.utils import secure_filename
-from PIL import Image
-from docx2pdf import convert as docx_convert    # For converting DOCX to PDF
 import uuid
 from docx import Document
 from zipfile import ZipFile, ZIP_DEFLATED
 from docx.shared import Inches
-from PIL import Image
-import os, uuid, shutil
-import pythoncom
-import win32com.client
-import comtypes.client
-import pythoncom
-
+import shutil
 
 app = Flask(__name__)
 
@@ -24,44 +16,26 @@ app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
 
 UPLOAD_FOLDER = 'uploads'
 MERGED_FOLDER = 'merged'
+COMPRESS_FOLDER = 'compressed'
+CONVERTED_FOLDER = 'converted'
 MAX_FILE_SIZE_MB = 1
 MAX_CONTENT_LENGTH_MB = 5
-COMPRESS_FOLDER = 'compressed'
-CONVERTED_FOLDER = 'converted' 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(MERGED_FOLDER, exist_ok=True)
-os.makedirs(COMPRESS_FOLDER, exist_ok=True)
-os.makedirs(CONVERTED_FOLDER, exist_ok=True)
 
+for folder in [UPLOAD_FOLDER, MERGED_FOLDER, COMPRESS_FOLDER, CONVERTED_FOLDER]:
+    os.makedirs(folder, exist_ok=True)
 
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH_MB * 1024 * 1024  # Total request size
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(MERGED_FOLDER, exist_ok=True)
-
-
-def docx_convert(input_path, output_path):
-    pythoncom.CoInitialize()  # FIX: this is required
-    try:
-        word = comtypes.client.CreateObject('Word.Application')
-        word.Visible = False
-        doc = word.Documents.Open(input_path)
-        doc.SaveAs(output_path, FileFormat=17)  # 17 = PDF
-        doc.Close()
-        word.Quit()
-    finally:
-        pythoncom.CoUninitialize() 
-# Home page showing tools
+# Home Page
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Form page for merging PDFs (GET)
+# --- MERGE PDFs ---
 @app.route('/merge', methods=['GET'])
 def merge_page():
-    return render_template('merge.html')  # Make sure merge.html exists in templates/
+    return render_template('merge.html')
 
-# Logic to merge PDFs (POST)
 @app.route('/merge', methods=['POST'])
 def merge_files():
     files = request.files.getlist('pdfs')
@@ -76,7 +50,6 @@ def merge_files():
             return f"❌ File {file.filename} exceeds {MAX_FILE_SIZE_MB}MB limit.", 400
 
     merger = PdfMerger()
-
     for file in files:
         filename = secure_filename(file.filename)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -89,8 +62,7 @@ def merge_files():
 
     return send_file(merged_pdf_path, as_attachment=True)
 
-
-# Form page for compressing files (POST)
+# --- COMPRESS FILES ---
 @app.route('/compress', methods=['GET'])
 def compress_page():
     return render_template('compress.html')
@@ -111,7 +83,6 @@ def compress_file():
     base_name = filename.rsplit('.', 1)[0]
     compressed_path = os.path.join(COMPRESS_FOLDER, base_name + '_compressed')
 
-    # Convert target_kb to bytes
     if target_kb:
         try:
             target_bytes = int(target_kb) * 1024
@@ -120,34 +91,24 @@ def compress_file():
     else:
         target_bytes = None
 
-    # Handle image compression
     if file_ext in ['jpg', 'jpeg', 'png']:
         compressed_img_path = compressed_path + '.jpg'
         image = Image.open(file_path)
 
-        quality = 85
-        if target_bytes:
-            # Try reducing quality until under target
-            for q in range(85, 10, -5):
-                image.save(compressed_img_path, format='JPEG', quality=q)
-                if os.path.getsize(compressed_img_path) <= target_bytes:
-                    break
-        else:
-            image.save(compressed_img_path, format='JPEG', quality=85)
+        for q in range(85, 10, -5):
+            image.save(compressed_img_path, format='JPEG', quality=q)
+            if not target_bytes or os.path.getsize(compressed_img_path) <= target_bytes:
+                break
 
         return send_file(compressed_img_path, as_attachment=True)
 
-    # If not image — just zip it
     zip_path = compressed_path + '.zip'
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(file_path, arcname=filename)
 
     return send_file(zip_path, as_attachment=True)
 
-
-
-
-# Form page for converting files (GET)
+# --- CONVERT TO PDF ---
 @app.route('/convert', methods=['GET'])
 def convert_page():
     return render_template('convert.html')
@@ -174,7 +135,7 @@ def to_pdf():
             image.save(output_path, 'PDF')
 
         elif file_type == 'word':
-            docx_convert(input_path, output_path)
+            return "❌ DOCX to PDF is currently only supported on Windows.", 400
 
         else:
             return "❌ Invalid file type. Only image or Word files are supported.", 400
@@ -184,10 +145,5 @@ def to_pdf():
     except Exception as e:
         return f"🔥 Error during conversion: {e}", 500
 
-
-
-
 if __name__ == '__main__':
     app.run(debug=True)
-    app.run(host='0.0.0', port=5000)  # Run on all interfaces, port 5000
-    
