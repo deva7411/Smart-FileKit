@@ -17,24 +17,15 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden;
     }
-
     main {
       flex: 1;
     }
-
     .card {
       border: none;
       border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease;
     }
-
-    .card:hover {
-      transform: scale(1.01);
-    }
-
     .drop-zone {
       border: 2px dashed #6c5ce7;
       padding: 40px;
@@ -45,32 +36,26 @@
       cursor: pointer;
       transition: 0.3s;
     }
-
     .drop-zone.dragover {
       background-color: #e0e7ff;
     }
-
     .progress {
       height: 8px;
     }
-
     footer {
       background-color: #6c5ce7;
       color: white;
       text-align: center;
       padding: 20px 0;
     }
-
     .animated-heading {
       animation: pulse 2s infinite;
     }
-
     @keyframes pulse {
       0% { transform: scale(1); color: #6c5ce7; }
       50% { transform: scale(1.05); color: #00b894; }
       100% { transform: scale(1); color: #6c5ce7; }
     }
-
     #fileName {
       font-size: 14px;
       color: #2d3436;
@@ -103,26 +88,29 @@
           <div id="fileName" class="text-primary small"></div>
         </div>
 
-        <!-- Form -->
+        <!-- Upload Form -->
         <form id="uploadForm" method="POST" enctype="multipart/form-data">
-          <input type="hidden" name="target_size" id="hiddenTargetSize">
+          <!-- Always visible dropdown -->
           <div class="mb-3" id="targetSizeField">
-            <label>Target Size (images only)</label>
-            <select class="form-select" id="targetSize">
+            <label for="targetSize">Target Size (KB)</label>
+            <select class="form-select" id="targetSize" name="target_size">
               <option value="">Default</option>
               <option value="100">100 KB</option>
               <option value="50">50 KB</option>
+              <option value="40">40 KB</option>
+              <option value="30">30 KB</option>
               <option value="20">20 KB</option>
+              <option value="10">10 KB</option>
             </select>
           </div>
 
-          <!-- Progress bar -->
+          <!-- Progress -->
           <div class="progress mb-3" style="display: none;" id="progressBarContainer">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                 role="progressbar" id="progressBar" style="width: 0%;">
-            </div>
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                 role="progressbar" id="progressBar" style="width: 0%;"></div>
           </div>
 
+          <!-- Submit -->
           <div class="d-grid">
             <button type="submit" class="btn btn-success rounded-pill">🚀 Compress & Download</button>
           </div>
@@ -132,7 +120,7 @@
   </div>
 </main>
 
-<!-- Toast Notification -->
+<!-- Toast -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
   <div id="toast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
@@ -157,21 +145,6 @@
   const fileInput = document.getElementById('fileInput');
   const fileNameDisplay = document.getElementById("fileName");
   const targetSizeSelect = document.getElementById("targetSize");
-  const targetSizeField = document.getElementById("targetSizeField");
-
-  function handleFileChange() {
-    if (fileInput.files.length) {
-      const file = fileInput.files[0];
-      fileNameDisplay.textContent = "📄 " + file.name;
-
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (["jpg", "jpeg", "png"].includes(ext)) {
-        targetSizeField.style.display = 'block';
-      } else {
-        targetSizeField.style.display = 'none';
-      }
-    }
-  }
 
   dropZone.addEventListener('click', () => fileInput.click());
 
@@ -193,6 +166,13 @@
 
   fileInput.addEventListener('change', handleFileChange);
 
+  function handleFileChange() {
+    if (fileInput.files.length) {
+      const file = fileInput.files[0];
+      fileNameDisplay.textContent = "📄 " + file.name;
+    }
+  }
+
   document.getElementById('uploadForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -203,8 +183,7 @@
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    const size = document.getElementById('targetSize').value;
-    formData.append('target_size', size);
+    formData.append('target_size', targetSizeSelect.value);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/compress_file', true);
@@ -218,6 +197,9 @@
     };
 
     xhr.onload = function () {
+      document.getElementById('progressBarContainer').style.display = 'none';
+      document.getElementById('progressBar').style.width = '0%';
+
       if (xhr.status === 200) {
         const blob = new Blob([xhr.response], { type: xhr.getResponseHeader("Content-Type") });
         const link = document.createElement('a');
@@ -234,9 +216,6 @@
         };
         reader.readAsText(xhr.response);
       }
-
-      document.getElementById('progressBarContainer').style.display = 'none';
-      document.getElementById('progressBar').style.width = '0%';
     };
 
     xhr.responseType = 'blob';
@@ -250,8 +229,6 @@
     const toast = new bootstrap.Toast(document.getElementById('toast'));
     toast.show();
   }
-
-  targetSizeField.style.display = 'none';
 </script>
 </body>
 </html>

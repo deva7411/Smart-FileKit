@@ -66,13 +66,12 @@ def merge_files():
 @app.route('/compress', methods=['GET'])
 def compress_page():
     return render_template('compress.html')
-
 @app.route('/compress_file', methods=['POST'])
 def compress_file():
     file = request.files['file']
     target_kb = request.form.get('target_size')
 
-    if file.filename == '':
+    if not file or file.filename == '':
         return "No file selected", 400
 
     filename = secure_filename(file.filename)
@@ -83,14 +82,13 @@ def compress_file():
     base_name = filename.rsplit('.', 1)[0]
     compressed_path = os.path.join(COMPRESS_FOLDER, base_name + '_compressed')
 
-    if target_kb:
-        try:
-            target_bytes = int(target_kb) * 1024
-        except:
-            target_bytes = None
-    else:
+    # Convert target size to bytes
+    try:
+        target_bytes = int(target_kb) * 1024 if target_kb else None
+    except:
         target_bytes = None
 
+    # Compress image
     if file_ext in ['jpg', 'jpeg', 'png']:
         compressed_img_path = compressed_path + '.jpg'
         image = Image.open(file_path)
@@ -102,9 +100,8 @@ def compress_file():
 
         return send_file(compressed_img_path, as_attachment=True)
 
-    zip_path = compressed_path + '.zip'
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(file_path, arcname=filename)
+    # Other file types: return original without zip
+    return send_file(file_path, as_attachment=True)
 
     return send_file(zip_path, as_attachment=True)
 
