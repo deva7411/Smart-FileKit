@@ -30,6 +30,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH_MB * 1024 * 1024  # Total 
 @app.route('/')
 def index():
     return render_template('index.html')
+   #return render_template('home.html')
 
 # --- MERGE PDFs ---
 @app.route('/merge', methods=['GET'])
