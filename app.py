@@ -145,7 +145,16 @@ def to_pdf():
 
 
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_file('static/sitemap.xml', mimetype='application/xml')  
+@app.route('/robots.txt')
+def robots():
+    return send_file('static/robots.txt', mimetype='text/plain')
 
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return "❌ File too large. Maximum size is 20MB.", 413
 
 
 if __name__ == '__main__':
