@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, Response
 import os
 import zipfile
 from PyPDF2 import PdfMerger
@@ -145,12 +145,25 @@ def to_pdf():
 
 
 
+
 @app.route('/sitemap.xml')
 def sitemap():
-    return send_file('static/sitemap.xml', mimetype='application/xml')  
-@app.route('/robots.txt')
+    sitemap_xml = '''<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://smart-filekit.onrender.com/</loc><priority>1.0</priority></url>
+      <url><loc>https://smart-filekit.onrender.com/merge</loc><priority>0.9</priority></url>
+      <url><loc>https://smart-filekit.onrender.com/convert</loc><priority>0.9</priority></url>
+      <url><loc>https://smart-filekit.onrender.com/compress</loc><priority>0.9</priority></url>
+    </urlset>'''
+    return Response(sitemap_xml, mimetype='application/xml')
+
+@app.route("/robots.txt")
 def robots():
-    return send_file('static/robots.txt', mimetype='text/plain')
+    return Response("""User-agent: *
+Allow: /
+
+Sitemap: https://smart-filekit.onrender.com/sitemap.xml
+""", mimetype="text/plain")
 
 
 
