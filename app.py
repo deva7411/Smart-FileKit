@@ -152,9 +152,7 @@ def sitemap():
 def robots():
     return send_file('static/robots.txt', mimetype='text/plain')
 
-@app.errorhandler(413)
-def request_entity_too_large(error):
-    return "❌ File too large. Maximum size is 20MB.", 413
+
 
 
 if __name__ == '__main__':
